@@ -1,60 +1,72 @@
 import { Loader } from 'components/Loader/Loader';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { createPortal } from 'react-dom';
 
 const modalRoot = document.querySelector('#modal-root');
 
-const Modal = ({ modalImg, alt, closeModal }) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoaded, setIsLoaded] = useState(false);
+class Modal extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      isLoading: true,
+      isLoaded: false,
+    };
+  }
 
-  useEffect(() => {
+  componentDidMount() {
     const closeByEscape = e => {
       if (e.code === 'Escape') {
-        closeModal();
+        this.props.closeModal();
       }
     };
 
     const handleKeyDown = e => closeByEscape(e);
     window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [closeModal]);
+    this.loadImage();
+  }
 
-  useEffect(() => {
-    setIsLoading(true);
-    setIsLoaded(false);
+  componentWillUnmount() {
+    window.removeEventListener('keydown', this.handleKeyDown);
+  }
 
+  loadImage() {
+    const { modalImg } = this.props;
     const loadImage = new Image();
     loadImage.src = modalImg;
 
     loadImage.onload = () => {
-      setIsLoading(false);
-      setIsLoaded(true);
+      this.setState({
+        isLoading: false,
+        isLoaded: true,
+      });
     };
+  }
 
-    return () => {
-      loadImage.onload = null;
-    };
-  }, [modalImg]);
+  render() {
+    const { modalImg, alt, closeModal } = this.props;
+    const { isLoading, isLoaded } = this.state;
 
-  return createPortal(
-    <div className="Overlay" onClick={closeModal}>
-      <div className="Modal">
-        {isLoading ? (
-          <div className="LoaderOverlay">
-            <Loader />
-          </div>
-        ) : (
-          isLoaded && (
-            <img src={modalImg} alt={alt} onClick={e => e.stopPropagation()} />
-          )
-        )}
-      </div>
-    </div>,
-    modalRoot
-  );
-};
+    return createPortal(
+      <div className="Overlay" onClick={closeModal}>
+        <div className="Modal">
+          {isLoading ? (
+            <div className="LoaderOverlay">
+              <Loader />
+            </div>
+          ) : (
+            isLoaded && (
+              <img
+                src={modalImg}
+                alt={alt}
+                onClick={e => e.stopPropagation()}
+              />
+            )
+          )}
+        </div>
+      </div>,
+      modalRoot
+    );
+  }
+}
 
 export default Modal;

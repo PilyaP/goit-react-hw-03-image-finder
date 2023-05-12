@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Rings } from 'react-loader-spinner';
-
 import { pixabayApi } from '../data/pixabayApi';
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { ButtonLoadMore } from './ButtonLoadMore/ButtonLoadMore';
@@ -63,5 +61,3 @@ export const App = () => {
     </>
   );
 };
-
-

@@ -25,7 +25,7 @@ export class Modal extends React.Component {
           <img src={this.props.modalImg} alt={this.props.alt} />
         </div>
       </div>,
-      modalRoot
+    modalRoot
     );
   }
 }

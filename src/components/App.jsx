@@ -1,63 +1,87 @@
-import React, { useState, useEffect } from 'react';
+import React, { Component } from 'react';
 import { pixabayApi } from '../data/pixabayApi';
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { ButtonLoadMore } from './ButtonLoadMore/ButtonLoadMore';
 import { Searchbar } from './Searchbar/Searchbar';
 import { Loader } from './Loader/Loader';
 
-export const App = () => {
-  const [images, setImages] = useState([]);
-  const [query, setQuery] = useState('');
-  const [page, setPage] = useState(1);
-  const [totalHits, setTotalHits] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+export class App extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      images: [],
+      query: '',
+      page: 1,
+      totalHits: 0,
+      isLoading: false,
+    };
+  }
 
-  const handleSubmitForm = query => {
-    setQuery(query);
-    setPage(1);
+  handleSubmitForm = query => {
+    this.setState({
+      query,
+      page: 1,
+    });
   };
 
-  const handleLoadMore = () => {
-    setPage(prevPage => prevPage + 1);
+  handleLoadMore = () => {
+    this.setState(prevState => ({
+      page: prevState.page + 1,
+    }));
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
+  fetchData = async () => {
+    const { query, page } = this.state;
+    this.setState({
+      isLoading: true,
+    });
 
-      try {
-        const data = await pixabayApi(query, page);
-        setImages(prevImages =>
-          page === 1 ? data.hits : [...prevImages, ...data.hits]
-        );
-        setTotalHits(prevTotalHits =>
+    try {
+      const data = await pixabayApi(query, page);
+      this.setState(prevState => ({
+        images: page === 1 ? data.hits : [...prevState.images, ...data.hits],
+        totalHits:
           page === 1
             ? data.totalHits - data.hits.length
-            : data.totalHits - images.length - data.hits.length
-        );
-      } catch (error) {
-        console.error('Error:', error);
-      }
+            : data.totalHits - prevState.images.length - data.hits.length,
+        isLoading: false,
+      }));
+    } catch (error) {
+      console.error('Error:', error);
+      this.setState({
+        isLoading: false,
+      });
+    }
+  };
 
-      setIsLoading(false);
-    };
+  componentDidMount() {
+    this.fetchData();
+  }
 
-    fetchData();
-  }, [query, page]);
+  componentDidUpdate(prevProps, prevState) {
+    const { query, page } = this.state;
+    if (query !== prevState.query || page !== prevState.page) {
+      this.fetchData();
+    }
+  }
 
-  return (
-    <>
-      <Searchbar onSubmit={handleSubmitForm} />
-      <ImageGallery images={images} />
-      {!!totalHits && (
-        <>
-          {isLoading ? (
-            <Loader />
-          ) : (
-            <ButtonLoadMore onLoadMore={handleLoadMore} />
-          )}
-        </>
-      )}
-    </>
-  );
-};
+  render() {
+    const { images, totalHits, isLoading } = this.state;
+
+    return (
+      <>
+        <Searchbar onSubmit={this.handleSubmitForm} />
+        <ImageGallery images={images} />
+        {!!totalHits && (
+          <>
+            {isLoading ? (
+              <Loader />
+            ) : (
+              <ButtonLoadMore onLoadMore={this.handleLoadMore} />
+            )}
+          </>
+        )}
+      </>
+    );
+  }
+}

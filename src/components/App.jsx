@@ -1,64 +1,67 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Rings } from 'react-loader-spinner';
 
-import { ImageGallery } from './ImageGallery/ImageGallery';
-
-import { Loader } from './Loader/Loader';
 import { pixabayApi } from '../data/pixabayApi';
+import { ImageGallery } from './ImageGallery/ImageGallery';
 import { ButtonLoadMore } from './ButtonLoadMore/ButtonLoadMore';
 import { Searchbar } from './Searchbar/Searchbar';
+import { Loader } from './Loader/Loader';
 
-export class App extends React.Component {
-  state = {
-    images: [],
-    query: '',
-    page: 1,
-    totalHits: 0,
-    isLoading: false,
+export const App = () => {
+  const [images, setImages] = useState([]);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalHits, setTotalHits] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmitForm = query => {
+    setQuery(query);
+    setPage(1);
   };
 
-  handleSubmitForm = query => {
-    this.setState({ query, page: 1 });
+  const handleLoadMore = () => {
+    setPage(prevPage => prevPage + 1);
   };
 
-  handleLoadMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
 
-  componentDidUpdate(_, prevState) {
-    const { query, page } = this.state;
-    if (prevState.query !== query || prevState.page !== page) {
-      this.setState({ isLoading: true });
+      try {
+        const data = await pixabayApi(query, page);
+        setImages(prevImages =>
+          page === 1 ? data.hits : [...prevImages, ...data.hits]
+        );
+        setTotalHits(prevTotalHits =>
+          page === 1
+            ? data.totalHits - data.hits.length
+            : data.totalHits - images.length - data.hits.length
+        );
+      } catch (error) {
+        console.error('Error:', error);
+      }
 
-      pixabayApi(query, page)
-        .then(data => {
-          this.setState(prev => ({
-            images: page === 1 ? data.hits : [...prev.images, ...data.hits],
-            totalHits:
-              page === 1
-                ? data.totalHits - data.hits.length
-                : data.totalHits - [...prev.images, ...data.hits].length,
-          }));
-        })
-        .finally(() => {
-          this.setState({ isLoading: false });
-        });
-    }
-  }
+      setIsLoading(false);
+    };
 
-  render() {
-    return (
-      <>
-        <Searchbar onSubmit={this.handleSubmitForm} />
-        <ImageGallery images={this.state.images} />
-        {!!this.state.totalHits &&
-          (!this.state.isLoading ? (
-            <ButtonLoadMore onLoadMore={this.handleLoadMore} />
-          ) : (
+    fetchData();
+  }, [query, page]);
+
+  return (
+    <>
+      <Searchbar onSubmit={handleSubmitForm} />
+      <ImageGallery images={images} />
+      {!!totalHits && (
+        <>
+          {isLoading ? (
             <Loader />
-          ))}
-      </>
-    );
-  }
-}
+          ) : (
+            <ButtonLoadMore onLoadMore={handleLoadMore} />
+          )}
+        </>
+      )}
+    </>
+  );
+};
+
+
